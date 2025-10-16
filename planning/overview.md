@@ -1,0 +1,367 @@
+# CLAUDE.md - Stock Screener Project Documentation
+
+This document serves as a comprehensive guide for Claude Code when working on the Stock Screener project. It outlines architectural decisions, coding standards, and business logic to ensure consistent development practices.
+
+## Project Overview
+
+The Stock Screener is a full-stack financial application that enables users to filter, analyze, and manage stock portfolios. It features advanced screening capabilities, real-time analytics, and data visualization tools.
+
+## Architecture Decisions
+
+### 1. Full-Stack Architecture
+- **Backend**: Django 5.2.6 with Django REST Framework
+- **Frontend**: React 19.1.1 with functional components and hooks
+- **Database**: PostgreSQL for robust financial data handling
+- **Communication**: RESTful API with JSON responses
+
+**Rationale**: Django provides robust ORM capabilities for complex financial data relationships, while React offers responsive UI for data-intensive operations.
+
+### 2. Database Design
+- **Primary Database**: PostgreSQL (configured on port 5433)
+- **Key Models**:
+  - `Stock`: Core financial metrics and company data
+  - `Exchange`: Stock exchange information
+  - `Sector`: Business sector classifications
+  - `Industry`: Industry classifications (linked to sectors)
+
+**Rationale**: PostgreSQL handles decimal precision required for financial data and supports complex queries for filtering operations.
+
+### 3. API Architecture
+- **REST Framework**: Django REST Framework with ViewSets
+- **Filtering**: Django-filter for advanced query capabilities
+- **Pagination**: Custom pagination (30 items per page)
+- **CORS**: Configured for React frontend (localhost:3000, 3001)
+
+**Key Endpoints**:
+- `/api/stocks/` - Main stock listing with filtering
+- `/api/stocks/filter_options/` - Available filter options
+- `/api/sector-industry-counts/` - Analytics data
+- `/api/filtered-stats/` - Real-time statistics
+
+### 4. Frontend Architecture
+- **Component Structure**: Page-based organization (ScreenerPage, ClassifiersPage)
+- **State Management**: React hooks (useState, useEffect) - no Redux
+- **Styling**: Inline styles with dark theme consistency
+- **Charts**: Chart.js for data visualization
+
+**Rationale**: Lightweight approach suitable for project scope; inline styles ensure dark theme consistency across components.
+
+## Coding Standards
+
+### Backend Standards
+
+#### Django Models
+```python
+# Always include proper decimal handling for financial data
+market_cap = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
+price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+# Use proper relationships
+sector = models.ForeignKey(Sector, on_delete=models.CASCADE, null=True, blank=True)
+
+# Include audit fields
+created_at = models.DateTimeField(auto_now_add=True)
+updated_at = models.DateTimeField(auto_now=True)
+```
+
+#### API Views
+- Use ViewSets for consistent CRUD operations
+- Apply select_related() for performance optimization
+- Implement proper filtering with django-filter
+- Handle null values explicitly in queries
+
+```python
+# Example of proper queryset optimization
+queryset = Stock.objects.select_related('exchange', 'sector', 'industry').all()
+
+# Proper null handling in filters
+countries = Stock.objects.exclude(
+    Q(country__isnull=True) | Q(country__exact='') | Q(country__exact='Unknown')
+).values_list('country', flat=True).distinct().order_by('country')
+```
+
+#### Serializers
+- Convert Decimal fields to float for frontend compatibility
+- Include related field names for easy access
+- Use SerializerMethodField for computed values
+
+```python
+# Always convert decimals to floats
+def _decimal_to_float(self, value):
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return float(value)
+    return value
+```
+
+### Frontend Standards
+
+#### React Components
+- Use functional components with hooks
+- Implement proper loading and error states
+- Apply consistent styling patterns
+
+```javascript
+// Consistent component structure
+const ComponentName = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    // Data fetching logic
+  }, [dependencies]);
+
+  return (
+    <div style={{ backgroundColor: '#0f172a', color: 'white' }}>
+      {/* Component content */}
+    </div>
+  );
+};
+```
+
+#### API Integration
+- Use axios for HTTP requests
+- Implement proper error handling
+- Apply consistent URL patterns
+
+```javascript
+const API_BASE_URL = 'http://localhost:8000/api';
+
+// Consistent error handling
+try {
+  const response = await axios.get(url);
+  setData(response.data);
+} catch (error) {
+  setError('Failed to fetch data');
+  console.error('API Error:', error);
+}
+```
+
+#### Styling Guidelines
+- Use dark theme color palette consistently:
+  - Background: `#0f172a`
+  - Secondary: `#1e293b`
+  - Borders: `#475569`
+  - Accent: `#0d9488`
+- Apply hover effects for interactive elements
+- Use consistent spacing and typography
+
+### Code Organization
+
+#### Backend Structure
+```
+backend/
+├── stock_screener/          # Django project settings
+│   ├── settings.py         # Database, CORS, REST framework config
+│   ├── urls.py            # Main URL routing
+│   └── wsgi.py            # WSGI configuration
+├── screener/              # Main application
+│   ├── models.py          # Data models
+│   ├── views.py           # API endpoints
+│   ├── serializers.py     # Data serialization
+│   ├── urls.py            # App URL routing
+│   ├── pagination.py      # Custom pagination
+│   └── management/        # Django commands
+└── manage.py              # Django management
+```
+
+#### Frontend Structure
+```
+frontend/
+├── src/
+│   ├── App.js             # Main application with routing
+│   ├── ScreenerPage.js    # Stock screening interface
+│   ├── ClassifiersPage.js # Industry classification view
+│   └── keheilan-logo.png  # Brand assets
+├── public/                # Static assets
+└── package.json           # Dependencies and scripts
+```
+
+## Business Logic
+
+### 1. Stock Screening System
+
+#### Filtering Capabilities
+- **Exchange Filtering**: Filter by stock exchange (exact match)
+- **Sector/Industry**: Hierarchical filtering with contains matching
+- **Geographic**: Country-based filtering (exact match)
+- **Financial Metrics**:
+  - Price range filtering (min/max)
+  - Market capitalization filtering (min/max with unit conversion)
+  - P/E ratio considerations
+- **Search**: Full-text search across ticker and company name
+
+#### Data Processing Rules
+```python
+# Price filtering logic
+if price_min:
+    queryset = queryset.filter(price__gte=Decimal(price_min))
+if price_max:
+    queryset = queryset.filter(price__lte=Decimal(price_max))
+
+# Market cap with proper decimal handling
+if market_cap_min:
+    queryset = queryset.filter(market_cap__gte=Decimal(market_cap_min))
+```
+
+### 2. Portfolio Management
+
+#### Stock Selection
+- Multi-select capability with visual feedback
+- Bulk operations (select all/none)
+- Selection persistence during filtering
+
+#### Export Functionality
+- CSV export of selected stocks
+- Include relevant financial metrics
+- Maintain data formatting for spreadsheet compatibility
+
+### 3. Analytics Engine
+
+#### Real-time Statistics
+- Total companies count
+- Market capitalization aggregation
+- Sector/industry distribution
+- Exchange breakdown
+
+#### Chart Generation
+- Sector breakdown visualization
+- Industry distribution charts
+- Interactive legends and tooltips
+- Responsive design for different screen sizes
+
+```javascript
+// Chart.js configuration pattern
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      labels: { color: 'white' }
+    }
+  },
+  scales: {
+    y: {
+      ticks: { color: 'white' },
+      grid: { color: '#374151' }
+    }
+  }
+};
+```
+
+### 4. Data Integrity Rules
+
+#### Financial Data Handling
+- Always use Decimal fields for precise financial calculations
+- Handle null values explicitly in all financial computations
+- Convert to float only at serialization boundary
+
+#### Relationship Integrity
+- Maintain proper foreign key relationships
+- Handle orphaned records gracefully
+- Implement cascade deletion where appropriate
+
+#### Performance Optimization
+- Use select_related() for foreign key relationships
+- Implement database indexing on frequently queried fields
+- Apply pagination to large datasets
+
+## Development Workflow
+
+### Backend Development
+1. **Model Changes**: Always create migrations after model updates
+2. **API Testing**: Use Django's built-in test framework or API clients
+3. **Database**: Run migrations in development before production
+
+### Frontend Development
+1. **Component Development**: Start with data structure, then UI
+2. **State Management**: Keep state as close to usage as possible
+3. **Testing**: Verify API integration and user interactions
+
+### Common Commands
+
+#### Backend Commands
+```bash
+# Database operations
+python manage.py makemigrations
+python manage.py migrate
+
+# Development server
+python manage.py runserver
+
+# Create superuser
+python manage.py createsuperuser
+```
+
+#### Frontend Commands
+```bash
+# Development
+npm start              # Start development server
+npm run build         # Production build
+npm test              # Run tests
+```
+
+## Security Considerations
+
+### Django Security
+- Use environment variables for sensitive settings
+- Never commit SECRET_KEY to version control
+- Set DEBUG=False in production
+- Configure ALLOWED_HOSTS properly
+
+### Database Security
+- Use database user with minimal required permissions
+- Implement proper connection string management
+- Regular backup procedures
+
+### API Security
+- Validate all input parameters
+- Implement rate limiting for production
+- Use HTTPS in production environment
+
+## Performance Guidelines
+
+### Database Optimization
+- Use select_related() for foreign key relationships
+- Implement proper indexing strategy
+- Monitor query performance with Django Debug Toolbar
+
+### Frontend Optimization
+- Implement proper loading states
+- Use pagination for large datasets
+- Optimize chart rendering with data limits
+
+### Caching Strategy
+- Consider implementing Redis for frequently accessed data
+- Cache expensive aggregation queries
+- Implement client-side caching for static data
+
+## Testing Strategy
+
+### Backend Testing
+- Unit tests for models and business logic
+- API endpoint testing with DRF test client
+- Integration testing for complex filtering logic
+
+### Frontend Testing
+- Component testing with React Testing Library
+- Integration testing for API communication
+- User interaction testing
+
+## Error Handling
+
+### Backend Error Handling
+- Use proper HTTP status codes
+- Provide meaningful error messages
+- Log errors for debugging
+
+### Frontend Error Handling
+- Display user-friendly error messages
+- Implement retry mechanisms for failed requests
+- Graceful degradation for missing data
+
+---
+
+*This document should be updated as the project evolves. Always refer to this guide when making architectural decisions or implementing new features.*
