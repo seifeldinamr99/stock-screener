@@ -1,3 +1,4 @@
+import os
 """
 Django settings for stock_screener project.
 
@@ -25,7 +26,7 @@ SECRET_KEY = 'django-insecure-x_bk9l(tcahu%hq5g47uj6g_ws=zs+v7wlxo**hn=s!9gy^p+w
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else ['localhost', '127.0.0.1']
 
 
 # Application definition
