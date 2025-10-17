@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, ChevronDown, Filter, ChevronUp, AlertCircle, BarChart3 } from 'lucide-react';
 import { Bar } from 'react-chartjs-2';
 import CompanyDetailModal from './components/common/CompanyDetailModal';
-
-const API_BASE_URL = 'http://localhost:8000/api';
+import { API_BASE_URL } from './utils/constants';
 const TEXT_COLORS = {
   primary: '#FFFFFF',
   secondary: '#FFCE7B',

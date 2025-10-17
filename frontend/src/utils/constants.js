@@ -1,4 +1,7 @@
-export const API_BASE_URL = 'http://localhost:8000/api';
+const DEFAULT_API_BASE_URL = 'http://localhost:8000/api';
+
+export const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL?.trim() || DEFAULT_API_BASE_URL;
 
 export const PRICE_FILTER_OPTIONS = [
   'Any', 'Under $1', 'Under $2', 'Under $3', 'Under $4', 'Under $5',

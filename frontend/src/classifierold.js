@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Filter, ChevronUp, ChevronRight, FileText, Folder, Expand, Shrink } from 'lucide-react';
 import CompaniesTable from './CompaniesTable';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+import { API_BASE_URL } from './utils/constants';
 
 const ClassifiersPage = () => {
   const [filterOptions, setFilterOptions] = useState({
